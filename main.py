@@ -36,6 +36,9 @@ def parse_args():
     return args
                                          
 def main(args):
+    trainset = torchvision.datasets.CIFAR10(root='./data', train=True,
+                                        download=True, transform=transform)
+
     # DDP setting
     if "WORLD_SIZE" in os.environ:
         args.world_size = int(os.environ["WORLD_SIZE"])
@@ -88,8 +91,6 @@ def main(args):
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=1e-5)
     
     ### data ###
-    trainset = torchvision.datasets.CIFAR10(root='./data', train=True,
-                                        download=True, transform=transform)
     train_sampler = DistributedSampler(trainset, shuffle=True)
     train_loader = DataLoader(trainset, batch_size=args.batch_size,
                                            num_workers=2, pin_memory=True, sampler=train_sampler)
