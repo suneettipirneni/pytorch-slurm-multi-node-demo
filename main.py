@@ -36,14 +36,6 @@ def parse_args():
     return args
                                          
 def main(args):
-    transform = transforms.Compose([
-      transforms.ToTensor(),
-      transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-    ])
-    
-    trainset = torchvision.datasets.CIFAR10(root='./data', train=True,
-                                        download=True, transform=transform)
-
     # DDP setting
     if "WORLD_SIZE" in os.environ:
         args.world_size = int(os.environ["WORLD_SIZE"])
@@ -63,10 +55,10 @@ def main(args):
     print(f"starting rank {dist.get_rank()}")
    
     # suppress printing if not on master gpu
-    if args.rank!=0:
-        def print_pass(*args):
-            pass
-        builtins.print = print_pass
+    # if args.rank!=0:
+    #     def print_pass(*args):
+    #         pass
+    #     builtins.print = print_pass
        
     ### model ###
     model = Net()
@@ -88,6 +80,14 @@ def main(args):
 	
     ### optimizer ###
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=1e-5)
+
+    transform = transforms.Compose([
+      transforms.ToTensor(),
+      transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+    ])
+    
+    trainset = torchvision.datasets.CIFAR10(root='./data', train=True,
+                                        download=True, transform=transform)
     
     ### data ###
     train_sampler = DistributedSampler(trainset, shuffle=True)
@@ -136,7 +136,7 @@ def train_one_epoch(train_loader, model, criterion, optimizer, epoch, args):
         # print statistics
         running_loss += loss.item()
         if i % 2000 == 1999:    # print every 2000 mini-batches
-            print(f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 2000:.3f}')
+            print(f'[{epoch + 1}, {i + 1:5d}, rank = {dist.get_rank()}] loss: {running_loss / 2000:.3f}')
             running_loss = 0.0
 
 if __name__ == '__main__':
