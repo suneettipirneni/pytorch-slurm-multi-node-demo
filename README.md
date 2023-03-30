@@ -4,6 +4,8 @@ This repo contains the scaffolding for a multi-node pytorch training demo on the
 
 The code has been adapted to train on the CIFAR-10 dataset. In addition some changes to the slurm script have been modified to work on the UCF ARCC newton cluster.
 
+By default this will train on 4 gpu's in total (2 nodes, 2 gpus per node). You can change this by modifying the `submit.slurm` file.
+
 ## Setup
 
 Create a python virtual environment and install the requirements:
