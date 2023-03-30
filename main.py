@@ -8,7 +8,7 @@ import numpy as np
 import random
 import torch.distributed as dist
 from torch import nn, optim
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, DistributedSampler
 
 from net import Net
 
@@ -52,6 +52,8 @@ def main(args):
         dist.init_process_group(backend=args.dist_backend, init_method=args.dist_url,
                                 world_size=args.world_size, rank=args.rank)
 
+    print(f"starting rank {dist.get_rank()}")
+   
     # suppress printing if not on master gpu
     if args.rank!=0:
         def print_pass(*args):
@@ -81,19 +83,16 @@ def main(args):
             model_without_ddp = model.module
     else:
         raise NotImplementedError("Only DistributedDataParallel is supported.")
-        
+	
     ### optimizer ###
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=1e-5)
-    
-    ### resume training if necessary ###
-    if args.resume:
-        pass
     
     ### data ###
     trainset = torchvision.datasets.CIFAR10(root='./data', train=True,
                                         download=True, transform=transform)
+    train_sampler = DistributedSampler(trainset, shuffle=True)
     train_loader = DataLoader(trainset, batch_size=args.batch_size,
-                                          shuffle=True, num_workers=2)
+                                           num_workers=2, pin_memory=True, sampler=train_sampler)
 
     testset = torchvision.datasets.CIFAR10(root='./data', train=False,
                                        download=True, transform=transform)
@@ -122,7 +121,8 @@ def train_one_epoch(train_loader, model, criterion, optimizer, epoch, args):
     running_loss = 0.0
     for i, data in enumerate(train_loader, 0):
         # get the inputs; data is a list of [inputs, labels]
-        inputs, labels = data
+        inputs = data[0].cuda()
+        labels = data[1].cuda()
 
         # zero the parameter gradients
         optimizer.zero_grad()
@@ -138,9 +138,6 @@ def train_one_epoch(train_loader, model, criterion, optimizer, epoch, args):
         if i % 2000 == 1999:    # print every 2000 mini-batches
             print(f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 2000:.3f}')
             running_loss = 0.0
-    
-def validate(val_loader, model, criterion, epoch, args):
-    pass
 
 if __name__ == '__main__':
     args = parse_args()

@@ -1,15 +1,14 @@
+#!/bin/sh
 #SBATCH --job-name=your-job-name
-#SBATCH --partition=gpu
 #SBATCH --time=72:00:00
 
 ### e.g. request 4 nodes with 1 gpu each, totally 4 gpus (WORLD_SIZE==4)
 ### Note: --gres=gpu:x should equal to ntasks-per-node
-#SBATCH --nodes=4
-#SBATCH --ntasks-per-node=1
-#SBATCH --gres=gpu:1
-#SBATCH --constraint=p40&gmem24G
-#SBATCH --chdir=/scratch/shared/beegfs/your_dir/
-#SBATCH --output=/scratch/shared/beegfs/your_dir/%x-%j.out
+#SBATCH --nodes=2
+#SBATCH --ntasks-per-node=2
+#SBATCH --gres=gpu:2
+#SBATCH --chdir=/home/cap6412.student28/pytorch-slurm-multi-node-demo
+#SBATCH --output=/home/cap6412.student28/pytorch-slurm-multi-node-demo/%x-%j.out
 
 module purge
 module load cuda
@@ -32,4 +31,4 @@ echo "MASTER_ADDR="$MASTER_ADDR
 source ./venv/bin/activate
 
 ### the command to run
-python main.py --lr 1e-3 --epochs 50
+srun python main.py --lr 1e-3 --epochs 50
